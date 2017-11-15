@@ -1,4 +1,4 @@
-# Nmap scanner for samma.
+# Nmap scanner for samma.io
 Scans the target ip and send result back to samma.io ore Elasticsearch server.
 
 
@@ -11,5 +11,5 @@ Scans the target ip and send result back to samma.io ore Elasticsearch server.
 docker run -it -e target=IP -e out=Elasticsearch -e es_host=http://elasticsearch -e es_user=elastic -e es_pass=changeme samma_scanner/nmap
 
 ###for output to samma.io
-docker run -it -e target=IP -e out=Elasticsearch -e es_host=http://elasticsearch -e es_user=elastic -e es_pass=changeme samma_scanner/nmap
+docker run -it -e target=IP -e key=keyfromsamma  samma_scanner/nmap
 
