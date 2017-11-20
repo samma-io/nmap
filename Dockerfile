@@ -11,4 +11,4 @@ COPY run.py /run.py
 RUN chmod 700 /run.py
 
 
-CMD /run.py
+CMD python /run.py
