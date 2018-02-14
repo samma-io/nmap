@@ -28,7 +28,19 @@ def convert_output():
 	f = open("result.xml","r") 
 	text = f.read()
 	o = xmltodict.parse(text)
-	json_out = json.dumps(o)
-	print json_out
+
+
+	try:
+		for port in o['nmaprun']['host']['ports']['port']:
+			print json.dumps(port)
+			o['nmaprun']['host']['ports']['port']=port
+			json_out = json.dumps(o)
+			print json_out
+
+
+
+	except KeyError:
+		json_out = json.dumps(o)
+		print json_out
 start_scan()
 convert_output()

@@ -2,9 +2,10 @@ version: '2'
 services:
   samma_scanner_namap:
     build: .
-    image: samma_scanner/nmap
+    image: sammascanner/nmap
     volumes:
       - ./:/scanner
     environment:
-      - TARGET=10.0.0.1
+      - TARGET=10.100.0.201
+      - RABBIT=10.100.0.37
 
