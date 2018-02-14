@@ -8,6 +8,8 @@
 import subprocess
 import os
 import xmltodict, json
+from rabbitmq import add_to_que
+
 
 
 
@@ -36,6 +38,7 @@ def convert_output():
 			o['nmaprun']['host']['ports']['port']=port
 			json_out = json.dumps(o)
 			print json_out
+			add_to_que(str(json_out))
 
 
 
