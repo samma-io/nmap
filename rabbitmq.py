@@ -5,8 +5,8 @@ import json
 
 
 #Rabbit
-conn = amqp.Connection(host="{0}:5672".format(os.environ['RABBIT']), userid="guest",
-password="guest", virtual_host="/", insist=False)
+conn = amqp.Connection(host="{0}:5671".format(os.environ['RABBIT']), userid="guest",
+password="guest", virtual_host="/", insist=False,ssl=True)
 
 chan = conn.channel()
 
