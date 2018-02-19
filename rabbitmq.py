@@ -5,8 +5,15 @@ import json
 
 
 #Rabbit
-conn = amqp.Connection(host="{0}:5671".format(os.environ['RABBIT']), userid="guest",
-password="guest", virtual_host="/", insist=False,ssl=True)
+try: 
+	tls = os.environ['TLS']
+	print("Connect to rabbit over TLS")
+	conn = amqp.Connection(host="{0}:5671".format(os.environ['RABBIT']), userid="guest",
+	password="guest", virtual_host="/", insist=False,ssl=True)
+except KeyError:
+	print("Connect to rabbit")
+	conn = amqp.Connection(host="{0}:5672".format(os.environ['RABBIT']), userid="guest",
+	password="guest", virtual_host="/", insist=False)
 
 chan = conn.channel()
 

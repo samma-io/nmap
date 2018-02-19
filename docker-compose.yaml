@@ -1,6 +1,6 @@
 version: '2'
 services:
-  samma_scanner_namap:
+  nmap:
     build: .
     image: sammascanner/nmap
     volumes:
@@ -8,4 +8,4 @@ services:
     environment:
       - TARGET=10.101.2.201
       - RABBIT=10.101.2.31
-
+      #- TLS=true
