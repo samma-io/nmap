@@ -40,7 +40,6 @@ def convert_output():
             out_json['runstats']= json.dumps(o['nmaprun']['runstats'])
             #print(port)
             print(out_json)
-            print('###################')
             #o['nmaprun']['host']['ports']['port']=port
             #json_out = json.dumps(o)
             #print json_out
