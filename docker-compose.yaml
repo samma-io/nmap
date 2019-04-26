@@ -8,4 +8,5 @@ services:
     environment:
       - TARGET=10.101.2.201
       - RABBIT=10.101.2.31
-      #- TLS=true
+      - TLS=true
+    command: tail -f /etc/fstab

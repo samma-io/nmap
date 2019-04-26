@@ -8,7 +8,6 @@
 import subprocess
 import os
 import xmltodict, json
-from rabbitmq import add_to_que
 
 
 
@@ -17,7 +16,6 @@ def start_scan():
 	'''
 	Start the nmap scan of the target
 	'''
-	print('Start the nmap scan')
 	process = subprocess.Popen('nmap -sS -oX result.xml {0} '.format(os.environ['TARGET']) , shell=True, stdout=subprocess.PIPE)
 	process.wait()
 
@@ -34,11 +32,16 @@ def convert_output():
 
 	try:
 		for port in o['nmaprun']['host']['ports']['port']:
-			print json.dumps(port)
-			o['nmaprun']['host']['ports']['port']=port
-			json_out = json.dumps(o)
-			print json_out
-			add_to_que(str(json_out))
+			out_json ={}
+			out_json['type'] ="Nmap Scan Ports" 
+			out_json['target']="{0}".format(os.environ['TARGET'])
+			out_json['result'] = json.dumps(port)
+			out_json['runstats']= json.dumps(o['nmaprun']['runstats'])
+			print(out_json)
+			#o['nmaprun']['host']['ports']['port']=port
+			#json_out = json.dumps(o)
+			#print json_out
+			#add_to_que(str(json_out))
 
 
 
