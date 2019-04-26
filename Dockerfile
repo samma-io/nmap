@@ -8,7 +8,7 @@ RUN pip install xmltodict amqplib
 
 
 COPY  . /code
-RUN chmod 700 /code/run.py
+RUN chmod 700 /code/nmap_*
 
 
-CMD python /code/run.py
+CMD python /code/nmap_portscanner.py
