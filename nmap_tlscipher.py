@@ -33,13 +33,13 @@ def convert_output():
     try:
         for port in o['nmaprun']['host']['ports']['port']:
             out_json ={}
-            out_json['type'] ="Nmap Scan TLS" 
-            out_json['target']="{0}".format(os.environ['TARGET'])
+            out_json["type"] ="Nmap Scan TLS" 
+            out_json["target"]="{0}".format(os.environ['TARGET'])
 
-            out_json['result'] = json.dumps(port)
-            out_json['runstats']= json.dumps(o['nmaprun']['runstats'])
+            out_json["result"] = port
+            out_json["runstats"]= o['nmaprun']['runstats']
             #print(port)
-            print(out_json)
+            print(json.dumps(out_json))
             #o['nmaprun']['host']['ports']['port']=port
             #json_out = json.dumps(o)
             #print json_out

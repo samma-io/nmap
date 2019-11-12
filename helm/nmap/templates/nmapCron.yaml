@@ -1,0 +1,33 @@
+{{- range .Values.targets }}
+
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: nmap-scanner-{{ . | replace "." "-"}}
+spec:
+  schedule: "{{ $.Values.schedule }}"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: nmap-portscanner
+            image: sammascanner/nmap:{{ $.Values.image.tag }}
+            command: ["python","/code/nmap_portscanner.py"]
+            env:
+              - name: TARGET
+                value: "{{ . }}"
+          - name: nmap-httprecon
+            image: sammascanner/nmap:{{ $.Values.image.tag }}
+            command: ["python","/code/nmap_httprecon.py"]
+            env:
+              - name: TARGET
+                value: "{{ . }}"
+          - name: nmap-tls
+            image: sammascanner/nmap:{{ $.Values.image.tag }}
+            command: ["python","/code/nmap_tlscipher.py"]
+            env:
+              - name: TARGET
+                value: "{{ . }}"
+          restartPolicy: Never
+{{ end }}
