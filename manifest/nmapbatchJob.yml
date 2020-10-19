@@ -1,28 +1,17 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: nmap-scanner
+  name: db-seed
 spec:
   activeDeadlineSeconds: 1200
   template:
     spec:
       containers:
-      - name: nmap-portscanner
-        image: sammascanner/nmap
-        command: ["python","/code/nmap_portscanner.py"]
+      - name: dbseed
+        image: git.booli.se:4567/booli/booli-price-estimation/dbseed:dev
         env:
-          - name: TARGET
-            value: "alamo.se"
-      - name: nmap-httprecon
-        image: sammascanner/nmap
-        command: ["python","/code/nmap_httprecon.py"]
-        env:
-          - name: TARGET
-            value: "alamo.se"
-      - name: nmap-tls
-        image: sammascanner/nmap
-        command: ["python","/code/nmap_tlscipher.py"]
-        env:
-          - name: TARGET
-            value: "alamo.se"
+          - name: MONGOLAB_HOST
+            value: mongodb
+          - name: MONGOLAB_URI
+            value: mongodb://mongodb:27017/booli-price-estimation
       restartPolicy: Never
