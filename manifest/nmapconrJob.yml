@@ -1,9 +1,9 @@
 apiVersion: batch/v1beta1
 kind: CronJob
 metadata:
-  name: nmap-scanner-alamo-se
+  name: nmap-scanner-booli-se
 spec:
-  schedule: "01 * * * *"
+  schedule: "01 19 * * 1"
   jobTemplate:
     spec:
       template:
@@ -11,20 +11,20 @@ spec:
           containers:
           - name: nmap-portscanner
             image: sammascanner/nmap
-            command: ["python","/code/nmap_portscanner.py"]
+            command: ["python3","/code/nmap_portscanner.py"]
             env:
               - name: TARGET
-                value: "alamo.se"
+                value: "booli.se"
           - name: nmap-httprecon
             image: sammascanner/nmap
-            command: ["python","/code/nmap_httprecon.py"]
+            command: ["python3","/code/nmap_httprecon.py"]
             env:
               - name: TARGET
-                value: "alamo.se"
+                value: "booli.se"
           - name: nmap-tls
             image: sammascanner/nmap
-            command: ["python","/code/nmap_tlscipher.py"]
+            command: ["python3","/code/nmap_tlscipher.py"]
             env:
               - name: TARGET
-                value: "alamo.se"
+                value: "booli.se"
           restartPolicy: Never

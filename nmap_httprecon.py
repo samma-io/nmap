@@ -28,27 +28,28 @@ def convert_output():
     f = open("result_h.xml","r") 
     text = f.read()
     o = xmltodict.parse(text)
+    json_data = json.dumps(o)
+    print(json_data)
+
+    #try:
+    #    for host in o['nmaprun']['host']:
+    #        for port in host['ports']['port']:
+    #            out_json ={}
+    #            out_json['type'] ="Nmap Scan httpd" 
+    #            out_json['target']="{0}".format(os.environ['TARGET'])
+    #            out_json['result'] = port
+    #            out_json['runstats']= o['nmaprun']['runstats']
+    #            #print(port)
+    #            print(json.dumps(out_json))
+    #            #o['nmaprun']['host']['ports']['port']=port
+    #            #json_out = json.dumps(o)
+    #            #print json_out
+    #            #add_to_que(str(json_out))
 
 
-    try:
-        for host in o['nmaprun']['host']:
-            for port in host['ports']['port']:
-                out_json ={}
-                out_json['type'] ="Nmap Scan httpd" 
-                out_json['target']="{0}".format(os.environ['TARGET'])
-                out_json['result'] = port
-                out_json['runstats']= o['nmaprun']['runstats']
-                #print(port)
-                print(json.dumps(out_json))
-                #o['nmaprun']['host']['ports']['port']=port
-                #json_out = json.dumps(o)
-                #print json_out
-                #add_to_que(str(json_out))
 
-
-
-    except KeyError:
-        json_out = json.dumps(o)
-        print(json_out)
+    #except KeyError:
+    #    json_out = json.dumps(o)
+    #    print(json_out)
 start_scan()
 convert_output()
