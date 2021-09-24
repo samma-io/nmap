@@ -29,24 +29,23 @@ def convert_output():
     text = f.read()
     o = xmltodict.parse(text)
     json_data = json.dumps(o)
-    print(json_data)
+    #print(o)
 
     
-    #for host in o['nmaprun']['host']:
-    #    try:
-    #        for port in host['ports']['port']:
-    #            out_json ={}
-    #            out_json["type"] ="NmapScanTLS" 
-    #            out_json['target']="{0}".format(os.environ['TARGET'])
-    #            out_json['service'] = port['service']
-    #            #out_json['version'] = port['service']['@version']
-    #            out_json['tls']= port['script']['table']
-    #            #out_json['runstats']= o['nmaprun']['runstats']
-    #            print(json.dumps(out_json))
-    #    except KeyError:
-    #            out_json ={}
-    #            out_json["type"] ="NmapScanTLS" 
-    #            out_json['target']="{0}".format(os.environ['TARGET'])
-    #            print(out_json)
+    for host in o['nmaprun']['host']['ports']['port']:
+        try:
+                out_json ={}
+                out_json["type"] ="NmapScanTLS" 
+                out_json['target']="{0}".format(os.environ['TARGET'])
+                out_json['service'] = host['service']
+                #out_json['version'] = port['service']['@version']
+                #out_json['tls']= host['script']['table']
+                #out_json['runstats']= o['nmaprun']['runstats']
+                print(json.dumps(out_json))
+        except KeyError:
+                out_json ={}
+                out_json["type"] ="NmapScanTLS" 
+                out_json['target']="{0}".format(os.environ['TARGET'])
+                #print(out_json)
 start_scan()
 convert_output()

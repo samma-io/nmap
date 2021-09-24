@@ -2,9 +2,10 @@ version: '2'
 services:
   nmap:
     build: .
-    image: sammascanner/nmap
+    image: sammascanner/nmap:v0.2
     volumes:
       - ./:/scanner
     environment:
       - TARGET=195.178.178.114
-    command: tail -f /etc/fstab
+    #command: python3 /code/nmap_httprecon.py
+    command: python3 /code/nmap_tlscipher.py
