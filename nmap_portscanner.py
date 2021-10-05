@@ -8,6 +8,7 @@
 import subprocess
 import os
 import xmltodict, json
+from sammaParser import logger
 
 
 
@@ -16,7 +17,7 @@ def start_scan():
 	'''
 	Start the nmap scan of the target
 	'''
-	process = subprocess.Popen('nmap -sS -oX result.xml {0} '.format(os.environ['TARGET']) , shell=True, stdout=subprocess.PIPE)
+	process = subprocess.Popen('sudo /bin/nmap -sS -oX /out/result.xml {0} '.format(os.environ['TARGET']) , shell=True, stdout=subprocess.PIPE)
 	process.wait()
 
 
@@ -25,7 +26,7 @@ def convert_output():
 	'''
 	Converts the output to json
 	'''
-	f = open("result.xml","r") 
+	f = open("/out/result.xml","r") 
 	text = f.read()
 	o = xmltodict.parse(text)
 	json_data = json.dumps(o)
@@ -38,7 +39,8 @@ def convert_output():
 			out_json['port']= host['@portid']
 			out_json['protocol']=host['@protocol']
 			#out_json["runstats"]= o['nmaprun']['runstats']
-			print(json.dumps(out_json))
+			logger(out_json)
+
 
 
 

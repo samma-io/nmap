@@ -7,5 +7,10 @@ services:
       - ./:/scanner
     environment:
       - TARGET=195.178.178.114
+      - SAMMA_IO_SCANNER=domain
+      - SAMMA_IO_ID=g23dE222
+      - SAMMA_IO_TAGS=['scanner','prod']
+      - SAMMA_IO_JSON={"extra":"value"}
+      - WRITE_TO_FILE="true"
     #command: python3 /code/nmap_httprecon.py
     command: python3 /code/nmap_tlscipher.py
