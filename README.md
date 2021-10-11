@@ -29,6 +29,8 @@ In a Kubernetes Cluster you can also use your own logpipline. Here the scanners 
 Highground is a colelctions of Elasticsearch ,Kibana and Grafana that is put toghter. 
 Its ready so that the different scanners can send there result into Elasticsearch and then use the pre ready dashbourds to show the result.
 
+![K8s!](/assets/dash1.png)
+
 
 You can send result with the attaced filebeat that send logs directly ore use your normal stput log flow.
 Then save the logs in the samma-io index to use our pre dashbourds.
