@@ -45,7 +45,59 @@ I helm repo is avalibel to deploy scanners with helm. This can be used to exampl
 [Samma Helm Charts](https://github.com/samma-io/helm)
 
 ## Help
-Help is provided by the bravops team at [Braveops](https://braveops.io) 
+Help is provided by the bravops team at [Braveops](https://braveops.io/samma) 
 
 
 
+## Nmap
+Nmap is a security scannings tool mostly used for port scanners. Here We use it in 3 diffent way
+
+### Port scanner
+Detects open ports and log the open ports in JSON and on tp elastic
+
+### http recon
+Recon the webbserver and try to fingerprint what webbserver is used
+
+### tls
+Connects to pprt 443 and gets all the chiffers used. And then log them.
+
+
+## Settings
+All Samma Securoty Scanners are set with ENV varables. 
+
+
+```
+- TARGET=195.178.178.114
+```
+Set the target this can be a IP ore Domain
+
+
+```
+- SAMMA_IO_SCANNER=name
+```
+Set what scanner use used this i passed on and you can name it to any string
+
+
+```
+- SAMMA_IO_ID=g23dE222
+```
+Set a ID of the scanner if you want to combine mult scanners and search for them this can ge used. 
+You can also add the gitsha if you used the scanners in a pipline
+
+
+```
+- SAMMA_IO_TAGS=['scanner','prod']
+```
+Tags to be used with the scanner
+
+
+```
+- SAMMA_IO_JSON={"extra":"value"}
+```
+Extra jason that will be passed to Elastic 
+
+```
+- WRITE_TO_FILE="true"
+```
+
+Write the output to file this need to be activated if you use filebeat so send logs to Elasticsearch
