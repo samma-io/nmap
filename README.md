@@ -13,6 +13,17 @@ The result is then sent to ElasticSerarch for storage and displayed using Kibana
 
 To see all the scanners please go to [Samma.io](https://samma.io)
 
+## Getting results
+
+![Log flow!](/assets/samma.io.png)
+
+Samma Security Scanners can send the result to Elasticsearch. Use the ready Filebeat to start up beside the scanner. The folder /out is shared between the contaniers and filebeat reads the result and send the data to Elasticsearch.
+![K8s!](/assets/samma-k8s.drawio.png)
+
+In a Kubernetes Cluster you can also use your own logpipline. Here the scanners will print out the result in JSON format that are then read by the log pods and sent to Elasticsearch ore other logs tools like Splunk.
+
+
+
 
 ## Start with Highground 
 Highground is a colelctions of Elasticsearch ,Kibana and Grafana that is put toghter. 
