@@ -2,19 +2,22 @@ import os
 import json
 
 WRITE_TO_FILE = os.getenv('WRITE_TO_FILE', 'False')
+PARSER = os.getenv('PARSER', 'nmap')
+
+
 
 #if we want to write to file lets set it up
 if WRITE_TO_FILE != "False":
-    f = open("/out/data.json", "w")
+    f = open("/out/{}.json".format(PARSER), "a")
 
 
 
-
-def WriteToFile(json):
+def WriteToFile(json_data):
     '''
     Write content into file
     '''
-    f.write(json)
+    json.dump(json_data, f, ensure_ascii=False,  sort_keys=True, separators=(',', ': '))
+    f.write("\n")
 
 
 
@@ -40,6 +43,6 @@ def logger(json_data):
 
     #If WRITE_TO_FILE != False
     if WRITE_TO_FILE != "False":
-        WriteToFile(str(json_data))
+        WriteToFile(json_data)
 
     print(json_data)

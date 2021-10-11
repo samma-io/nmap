@@ -36,7 +36,8 @@ def convert_output():
     for host in o['nmaprun']['host']['ports']['port']:
         try:
                 out_json ={}
-                out_json["type"] ="NmapScanTLS" 
+                out_json['type'] ="nmap"
+                out_json['scanner'] ="nmap_tls" 
                 out_json['target']="{0}".format(os.environ['TARGET'])
                 out_json['service'] = host['service']
                 #out_json['version'] = port['service']['@version']

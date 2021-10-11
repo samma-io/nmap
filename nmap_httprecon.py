@@ -35,7 +35,8 @@ def convert_output():
     try:
         for host in o['nmaprun']['host']['ports']['port']:
                 out_json ={}
-                out_json['type'] ="Nmap Scan httpd" 
+                out_json['type'] ="nmap"
+                out_json['scanner'] ="nmap_httpd"
                 out_json['target']="{0}".format(os.environ['TARGET'])
                 out_json['result'] = host
                 out_json['runstats']= o['nmaprun']['runstats']
