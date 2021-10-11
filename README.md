@@ -30,6 +30,8 @@ Highground is a colelctions of Elasticsearch ,Kibana and Grafana that is put tog
 Its ready so that the different scanners can send there result into Elasticsearch and then use the pre ready dashbourds to show the result.
 
 ![K8s!](/assets/dash1.png)
+![K8s!](/assets/tsunami.png)
+![K8s!](/assets/findings.png)
 
 
 You can send result with the attaced filebeat that send logs directly ore use your normal stput log flow.
