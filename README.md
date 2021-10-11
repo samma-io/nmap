@@ -40,8 +40,9 @@ Then start the scanner you want to run against your targets.
 All repos has manifest so that you can deploy your scanners into your own kubernetes cluster. The manifest are mostly testet aginst minkube but will work against any kubernetes cluster.
 
 ## Helm
-I helm repo is avalibel to deploy scanners with helm. This can be used to example deploy scanner into the cluster in the pipeline ore into a productions scanenr cluster.
+I helm repo is avalibel to deploy scanners with helm. This can be used to example deploy scanner into the cluster in the pipeline ore into a productions scanner cluster.
 
+[Samma Helm Charts](https://github.com/samma-io/helm)
 
 ## Help
 Help is provided by the bravops team at [Braveops](https://braveops.io) 
