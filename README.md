@@ -1,6 +1,6 @@
 # Samma Security Scanner Nmap
 
-![Samma-io!](/https://samma.io/assets/img/samma_logo.png")
+![Samma-io!](/assets/samma_logo.png)
 
 
 
