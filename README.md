@@ -15,7 +15,7 @@ To see all the scanners please go to [Samma.io](https://samma.io)
 
 ## Getting results
 
-![Log flow!](/assets/samma.io.png)
+![Log flow!](/assets/samma_setup.drawio.png)
 
 Samma Security Scanners can send the result to Elasticsearch. Use the ready Filebeat to start up beside the scanner. The folder /out is shared between the contaniers and filebeat reads the result and send the data to Elasticsearch.
 ![K8s!](/assets/samma-k8s.drawio.png)
