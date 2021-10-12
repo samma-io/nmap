@@ -32,6 +32,7 @@ Its ready so that the different scanners can send there result into Elasticsearc
 ![K8s!](/assets/dash1.png)
 ![K8s!](/assets/tsunami.png)
 ![K8s!](/assets/findings.png)
+![K8s!](/assets/grafana.png)
 
 
 You can send result with the attaced filebeat that send logs directly ore use your normal stput log flow.
@@ -43,7 +44,7 @@ All Samma Security scanners can be run from the command line to scan then output
 
 
 ```
-docker run sammascanner/nmap -e TARGET=samma-io 
+docker run sammascanner/nmap -e TARGET=samma.io 
 ```
 
 ## Docker-compose
