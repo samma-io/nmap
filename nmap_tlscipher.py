@@ -8,7 +8,7 @@
 import subprocess
 import os
 import xmltodict, json
-from sammaParser import logger
+from sammaParser import logger, endThis
 
 
 
@@ -53,3 +53,4 @@ def convert_output():
 
 start_scan()
 convert_output()
+endThis()

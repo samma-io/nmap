@@ -19,6 +19,21 @@ def WriteToFile(json_data):
     json.dump(json_data, f, ensure_ascii=False,  sort_keys=True, separators=(',', ': '))
     f.write("\n")
 
+def endThis():
+    '''
+    When the scans is done we want to end all if this in a nice way.
+
+    - first we send a log to put logger so we get a mark in the files that we are done
+    - then we write to the file /out/die -- this till other service to also shu down
+    '''
+
+    #Log end message
+    endJson={"scan":"done"}
+    logger(endJson)
+    f = open("/out/die", "w")
+    f.write("time to die")
+    f.close()
+
 
 
 def logger(json_data):
