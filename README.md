@@ -1,119 +1,71 @@
-# Samma Security Scanner Nmap
+# Samma scanner: Nmap
 
-![Samma-io!](/assets/samma_logo.png)
+![Samma-io](assets/samma_logo.png)
 
+[Nmap](https://nmap.org) wrapped as a Samma scanner. It is one of the open-source scanners that the
+[Samma operator](https://github.com/samma-io/operator) runs in your Kubernetes cluster, against the
+hosts in your annotated Ingresses. Every finding goes to Grafana in that same cluster.
 
+## What it checks
 
+The image has three modes. The operator runs each one as a separate scanner:
 
-## Samma Security Scanners
-This scanner is part of the Samma Security Scanners
+| Operator scanner | Script | Nmap command | Finds | Use it for |
+|---|---|---|---|---|
+| `nmap/port` | `nmap_portscanner.py` (default) | `nmap -sS` | Open TCP ports (SYN scan) | A thorough port inventory |
+| `nmap/http` | `nmap_httprecon.py` | `nmap -sV --script http-enum` | Web server fingerprint, common paths and applications | Knowing what software you expose |
+| `nmap/tls` | `nmap_tlscipher.py` | `nmap -sV --script ssl-enum-ciphers` | Every TLS cipher and protocol accepted, with a grade | Weak cipher and protocol findings |
 
-The Samma Security Scanners are all small openspurce scanners. That have ben docerixed and print there result in JSON format.
-The result is then sent to ElasticSerarch for storage and displayed using Kibana ore Grafana.
+The lighter [detect](https://github.com/samma-io/detect) scanners (`port-scanner`, `tls-scanner`)
+cover the same ground faster. Use Nmap when you want the full picture.
 
-To see all the scanners please go to [Samma.io](https://samma.io)
+## Run it locally
 
-## Getting results
+```sh
+docker build -t samma-nmap .
 
-![Log flow!](/assets/samma_setup.drawio.png)
+# port scan (default)
+docker run --rm -e TARGET=scanme.nmap.org samma-nmap
 
-Samma Security Scanners can send the result to Elasticsearch. Use the ready Filebeat to start up beside the scanner. The folder /out is shared between the contaniers and filebeat reads the result and send the data to Elasticsearch.
-![K8s!](/assets/samma-k8s.drawio.png)
-
-In a Kubernetes Cluster you can also use your own logpipline. Here the scanners will print out the result in JSON format that are then read by the log pods and sent to Elasticsearch ore other logs tools like Splunk.
-
-
-
-
-## Start with Highground 
-Highground is a colelctions of Elasticsearch ,Kibana and Grafana that is put toghter. 
-Its ready so that the different scanners can send there result into Elasticsearch and then use the pre ready dashbourds to show the result.
-
-![K8s!](/assets/dash1.png)
-![K8s!](/assets/tsunami.png)
-![K8s!](/assets/findings.png)
-![K8s!](/assets/grafana.png)
-
-
-You can send result with the attaced filebeat that send logs directly ore use your normal stput log flow.
-Then save the logs in the samma-io index to use our pre dashbourds.
-
-
-## Start with console
-All Samma Security scanners can be run from the command line to scan then output the result in JSON. This make its easy to integrate the scanner into diffrent piplines but also test the scanners localy
-
-
-```
-docker run sammascanner/nmap -e TARGET=samma.io 
+# http recon or TLS ciphers
+docker run --rm -e TARGET=scanme.nmap.org samma-nmap python3 /code/nmap_httprecon.py
+docker run --rm -e TARGET=scanme.nmap.org samma-nmap python3 /code/nmap_tlscipher.py
 ```
 
-## Docker-compose
-All repos has a responding docker compose to setup and test localy on a developer machine. Start by sarting up highground to get the dashbourds ready.
-Then start the scanner you want to run against your targets.
-
-
-## Kubernetes 
-All repos has manifest so that you can deploy your scanners into your own kubernetes cluster. The manifest are mostly testet aginst minkube but will work against any kubernetes cluster.
-
-## Helm
-I helm repo is avalibel to deploy scanners with helm. This can be used to example deploy scanner into the cluster in the pipeline ore into a productions scanner cluster.
-
-[Samma Helm Charts](https://github.com/samma-io/helm)
-
-## Help
-Help is provided by the bravops team at [Braveops](https://braveops.io/samma) 
-
-
-
-## Nmap
-Nmap is a security scannings tool mostly used for port scanners. Here We use it in 3 diffent way
-
-### Port scanner
-Detects open ports and log the open ports in JSON and on tp elastic
-
-### http recon
-Recon the webbserver and try to fingerprint what webbserver is used
-
-### tls
-Connects to pprt 443 and gets all the chiffers used. And then log them.
-
+Findings are printed to stdout. Only scan hosts you own or have permission to test;
+`scanme.nmap.org` exists for this purpose.
 
 ## Settings
-All Samma Securoty Scanners are set with ENV varables. 
 
+All settings are environment variables:
 
-```
-- TARGET=195.178.178.114
-```
-Set the target this can be a IP ore Domain
+| Variable | Default | Description |
+|---|---|---|
+| `TARGET` | **required** | Host or IP to scan |
+| `SAMMA_IO_SCANNER` | `nmap` | Scanner label on every finding |
+| `SAMMA_IO_ID` | `1234` | Id added to every finding |
+| `SAMMA_IO_TAGS` | `scanner` | Comma-separated tags added to every finding |
+| `SAMMA_IO_JSON` | `{}` | Extra JSON added to every finding |
+| `TARGET_ID` | — | samma.io target id, so findings show on that target |
+| `WRITE_TO_FILE` | `False` | `true` writes findings to `/out/<PARSER>.json` |
+| `PARSER` | `nmap` | Output file name |
+| `NATS_ENABLED` | `False` | `true` publishes every finding to NATS |
+| `NATS_URL` | `nats://localhost:4222` | NATS server |
+| `NATS_SUBJECT` | `scans` | NATS subject (the operator uses `samma-io.scan`) |
 
+## In Kubernetes
 
-```
-- SAMMA_IO_SCANNER=name
-```
-Set what scanner use used this i passed on and you can name it to any string
+Don't deploy this image by hand. Install the [Samma operator](https://github.com/samma-io/operator)
+and pick a profile that includes Nmap (`web`, `network`, `classic`, `default` or `all`) on an
+Ingress:
 
-
-```
-- SAMMA_IO_ID=g23dE222
-```
-Set a ID of the scanner if you want to combine mult scanners and search for them this can ge used. 
-You can also add the gitsha if you used the scanners in a pipline
-
-
-```
-- SAMMA_IO_TAGS=['scanner','prod']
-```
-Tags to be used with the scanner
-
-
-```
-- SAMMA_IO_JSON={"extra":"value"}
-```
-Extra jason that will be passed to Elastic 
-
-```
-- WRITE_TO_FILE="true"
+```yaml
+metadata:
+  annotations:
+    samma-io.alpha.kubernetes.io/enable: "true"
+    samma-io.alpha.kubernetes.io/profile: "network"
 ```
 
-Write the output to file this need to be activated if you use filebeat so send logs to Elasticsearch
+The operator runs the scan once straight away and then weekly. When you delete the Ingress, the
+scanners are removed. Findings flow through NATS and TimescaleDB to Grafana. The
+[Samma guide](https://github.com/samma-io/guide) covers the whole setup.
