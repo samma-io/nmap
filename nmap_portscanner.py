@@ -9,16 +9,24 @@ import subprocess
 import os
 import xmltodict, json
 from sammaParser import logger, endThis
+from target_check import require_valid_target
 
 
+def nmap_command(target):
+	'''
+	Build the nmap argv list. The target is one argument of its own, so
+	nothing in it is interpreted by a shell. sudo stays because the image
+	runs as the samma user with a sudoers rule for /bin/nmap, and -sS needs
+	raw sockets.
+	'''
+	return ['sudo', '/bin/nmap', '-sS', '-oX', '/out/result.xml', target]
 
 
-def start_scan():
+def start_scan(target):
 	'''
 	Start the nmap scan of the target
 	'''
-	process = subprocess.Popen('sudo /bin/nmap -sS -oX /out/result.xml {0} '.format(os.environ['TARGET']) , shell=True, stdout=subprocess.PIPE)
-	process.wait()
+	subprocess.run(nmap_command(target), stdout=subprocess.DEVNULL, check=False)
 
 
 
@@ -26,7 +34,7 @@ def convert_output():
 	'''
 	Converts the output to json
 	'''
-	f = open("/out/result.xml","r") 
+	f = open("/out/result.xml","r")
 	text = f.read()
 	o = xmltodict.parse(text)
 	json_data = json.dumps(o)
@@ -49,6 +57,11 @@ def convert_output():
 	except KeyError:
 		json_out = json.dumps(o)
 		#print(json_out)
-start_scan()
-convert_output()
-endThis()
+
+
+if __name__ == '__main__':
+	#Refuse a bad target before anything runs, then scan and get the output
+	target = require_valid_target()
+	start_scan(target)
+	convert_output()
+	endThis()
