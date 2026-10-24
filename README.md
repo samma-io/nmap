@@ -77,6 +77,11 @@ Leave the variable unset to keep the SYN scan through `sudo`. The
 `scanners.nmapRawSockets` value is `true`, in which case the pod gets the `NET_RAW` capability and
 the SYN scan instead.
 
+The image creates `samma` with uid and gid 1000, the `runAsUser` the operator sets, and removes the
+stock `ubuntu` user that recent Ubuntu base images ship at that id. Without that, `samma` would get
+uid 1001 and a pod running as 1000 would be the `ubuntu` user, which the sudoers rule does not
+cover.
+
 ## In Kubernetes
 
 Don't deploy this image by hand. Install the [Samma operator](https://github.com/samma-io/operator)
