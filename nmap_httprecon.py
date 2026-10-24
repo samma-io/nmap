@@ -10,15 +10,18 @@ import os
 import xmltodict, json
 from sammaParser import logger, endThis
 from target_check import require_valid_target
+from nmap_args import http_recon_command
 
 
 def nmap_command(target):
 	'''
-	Build the nmap argv list. The target is one argument of its own, so
-	nothing in it is interpreted by a shell. sudo stays because the image
-	runs as the samma user with a sudoers rule for /bin/nmap.
+	The nmap argv list, built by nmap_args. By default nmap runs through
+	sudo; with NMAP_UNPRIVILEGED=1 it runs without sudo. Version detection
+	and the http-enum script need no raw sockets, so the flags are the same
+	in both modes. The target is one argument of its own, so nothing in it
+	is interpreted by a shell.
 	'''
-	return ['sudo', '/bin/nmap', '-sV', '--script', 'http-enum', target, '-oX', '/out/result.xml']
+	return http_recon_command(target)
 
 
 def start_scan(target):
