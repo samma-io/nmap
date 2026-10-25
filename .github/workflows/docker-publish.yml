@@ -4,6 +4,8 @@ on:
   push:
     branches: [master]
     tags: ["v*"]
+  pull_request:
+    branches: [master]
   schedule:
     - cron: "0 0 * * 0"
 
@@ -13,7 +15,7 @@ env:
 
 jobs:
   build-and-push:
-    name: Build & Push Docker Image
+    name: Build, smoke-test & push
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -22,9 +24,47 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Unit tests
+        run: |
+          if [ -d tests ]; then
+            python3 -m venv /tmp/venv
+            /tmp/venv/bin/pip install -q xmltodict
+            /tmp/venv/bin/python -m unittest discover -s tests -t . -v
+          else
+            echo "no tests directory"
+          fi
+
       - uses: docker/setup-buildx-action@v3
 
+      - name: Build image for the smoke test
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          push: false
+          tags: scanner:ci
+          cache-from: type=gha
+
+      # Scan a local nginx (ports 80 and 8080) with each of the three scripts
+      # and check the records the bridge and the detection rules read.
+      - name: Smoke scan against a local nginx
+        run: |
+          set -euo pipefail
+          docker network create smoke
+          docker run -d --name web --network smoke nginx:1.27-alpine \
+            sh -c "sed -i 's/listen  *80;/listen 80; listen 8080;/' /etc/nginx/conf.d/default.conf && exec nginx -g 'daemon off;'"
+          sleep 3
+          docker run --rm --network smoke -e TARGET=web scanner:ci | tee port.log
+          grep -F "'type': 'nmap', 'scanner': 'nmap_port', 'target': 'web', 'port': '80', 'protocol': 'tcp'" port.log
+          grep -F "'scanner': 'nmap_port', 'target': 'web', 'port': '8080', 'protocol': 'tcp'" port.log
+          grep -F "'scan': 'done'" port.log
+          docker run --rm --network smoke -e TARGET=web scanner:ci python3 /code/nmap_httprecon.py | tee http.log
+          grep -F "'type': 'nmap', 'scanner': 'nmap_httpd', 'target': 'web'" http.log
+          docker run --rm --network smoke -e TARGET=web scanner:ci python3 /code/nmap_tlscipher.py | tee tls.log
+          grep -F "'type': 'nmap', 'scanner': 'nmap_tls', 'target': 'web'" tls.log
+
       - name: Log in to GitHub Container Registry
+        if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -32,6 +72,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract metadata
+        if: github.event_name != 'pull_request'
         id: meta
         uses: docker/metadata-action@v5
         with:
@@ -41,9 +82,10 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=sha
-            type=schedule,pattern={{date}}
+            type=schedule,pattern={{date 'YYYYMMDD'}}
 
       - name: Build and push
+        if: github.event_name != 'pull_request'
         uses: docker/build-push-action@v6
         with:
           context: .
