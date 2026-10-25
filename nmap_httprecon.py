@@ -5,18 +5,21 @@
 # Start the nmap scan and wait for it to complete.
 # Then format the resonse and send the data back to the server
 #
-import subprocess
 import os
+import sys
 import xmltodict, json
 from sammaParser import logger, endThis
-from target_check import require_valid_target
+from target_check import require_valid_target, _write_die
+import nmap_args
+import nmap_xml
 from nmap_args import http_recon_command
 
 
 def nmap_command(target):
 	'''
 	The nmap argv list, built by nmap_args. By default nmap runs through
-	sudo; with NMAP_UNPRIVILEGED=1 it runs without sudo. Version detection
+	sudo; with NMAP_UNPRIVILEGED=1 it runs without sudo (and
+	with NMAP_PRIVILEGED=1 from the nmap-raw copy, also without sudo). Version detection
 	and the http-enum script need no raw sockets, so the flags are the same
 	in both modes. The target is one argument of its own, so nothing in it
 	is interpreted by a shell.
@@ -26,47 +29,35 @@ def nmap_command(target):
 
 def start_scan(target):
 	'''
-	Start the nmap scan of the target
+	Start the nmap scan of the target. False when nmap could not start.
 	'''
-	subprocess.run(nmap_command(target), stdout=subprocess.DEVNULL, check=False)
+	return nmap_args.run(nmap_command(target))
 
 
 
-def convert_output():
+def convert_output(doc):
     '''
-    Converts the output to json
+    One record per port in the report, carrying the port element as nmap
+    wrote it. A down host gives no records.
     '''
-    f = open("/out/result.xml","r")
-    text = f.read()
-    o = xmltodict.parse(text)
-    json_data = json.dumps(o)
-    #print(o)
-
-    try:
-        for host in o['nmaprun']['host']['ports']['port']:
-                out_json ={}
-                out_json['type'] ="nmap"
-                out_json['scanner'] ="nmap_httpd"
-                out_json['target']="{0}".format(os.environ['TARGET'])
-                out_json['result'] = host
-                out_json['runstats']= o['nmaprun']['runstats']
-                #print(port)
-                logger(out_json)
-                #o['nmaprun']['host']['ports']['port']=port
-                #json_out = json.dumps(o)
-                #print json_out
-                #add_to_que(str(json_out))
-
-
-
-    except KeyError:
-        json_out = json.dumps(o)
-        #print(json_out)
+    for port in nmap_xml.ports(doc):
+        out_json ={}
+        out_json['type'] ="nmap"
+        out_json['scanner'] ="nmap_httpd"
+        out_json['target']="{0}".format(os.environ['TARGET'])
+        out_json['result'] = port
+        out_json['runstats']= nmap_xml.runstats(doc)
+        logger(out_json)
 
 
 if __name__ == '__main__':
     #Refuse a bad target before anything runs, then scan and get the output
     target = require_valid_target()
     start_scan(target)
-    convert_output()
+    doc = nmap_xml.read_report(xmltodict.parse)
+    if doc is None:
+        # nmap failed: no "scan done" record, exit non-zero like a bad target
+        _write_die("/out/die")
+        sys.exit(1)
+    convert_output(doc)
     endThis()

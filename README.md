@@ -53,6 +53,7 @@ All settings are environment variables:
 | `NATS_URL` | `nats://localhost:4222` | NATS server |
 | `NATS_SUBJECT` | `scans` | NATS subject (the operator uses `samma-io.scan`) |
 | `NMAP_UNPRIVILEGED` | unset | `1` runs nmap without `sudo` and with a connect scan, see [Unprivileged mode](#unprivileged-mode) |
+| `NMAP_PRIVILEGED` | unset | `1` runs the SYN scan without `sudo`, with only the `NET_RAW` capability, see [Raw-sockets mode](#raw-sockets-mode). `NMAP_UNPRIVILEGED` wins if both are set |
 
 ## Unprivileged mode
 
@@ -75,7 +76,38 @@ docker run --rm -e TARGET=scanme.nmap.org -e NMAP_UNPRIVILEGED=1 samma-nmap
 Leave the variable unset to keep the SYN scan through `sudo`. The
 [Samma operator](https://github.com/samma-io/operator) sets it on every nmap container unless its
 `scanners.nmapRawSockets` value is `true`, in which case the pod gets the `NET_RAW` capability and
-the SYN scan instead.
+[raw-sockets mode](#raw-sockets-mode) instead.
+
+## Raw-sockets mode
+
+`NMAP_PRIVILEGED=1` keeps the SYN scan in a pod that drops every capability but adds `NET_RAW`.
+`sudo` cannot work there, so the scripts run `/usr/local/lib/samma/nmap-raw` as the `samma` user:
+a copy of nmap that carries the file capability `cap_net_raw+eip`. nmap reads `NMAP_PRIVILEGED`
+itself and uses raw sockets although it is not root.
+
+```sh
+docker run --rm -u 1000 --cap-drop ALL --cap-add NET_RAW \
+  -e TARGET=scanme.nmap.org -e NMAP_PRIVILEGED=1 samma-nmap
+```
+
+Two conditions, both checked by CI:
+
+* The container needs `NET_RAW` in its bounding set (`capabilities.add: [NET_RAW]`).
+* Privilege escalation must be allowed (`allowPrivilegeEscalation: true`, no
+  `--security-opt no-new-privileges`). A file capability is a privilege gain at exec, which
+  `no_new_privs` forbids, and the kernel then refuses to run `nmap-raw` at all. The scripts report
+  that on stderr and exit 1 without a `scan: done` record.
+
+`/bin/nmap` itself has no file capability. Because its capability bit is "effective", the kernel
+would refuse to run it in any pod without `NET_RAW`, which would break the default and unprivileged
+modes.
+
+## Results
+
+Each script logs one record per port nmap reports (`nmap_port`, `nmap_httpd` or `nmap_tls`), then
+`scanner_stop` and `scan: done`. A host that is down, or up with no open ports, gives no findings
+and exits 0. If nmap leaves no readable report (it could not start, or was killed) the script
+exits 1 without `scan: done`.
 
 The image creates `samma` with uid and gid 1000, the `runAsUser` the operator sets, and removes the
 stock `ubuntu` user that recent Ubuntu base images ship at that id. Without that, `samma` would get
