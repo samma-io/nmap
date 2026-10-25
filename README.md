@@ -95,19 +95,20 @@ Two conditions, both checked by CI:
 * The container needs `NET_RAW` in its bounding set (`capabilities.add: [NET_RAW]`).
 * Privilege escalation must be allowed (`allowPrivilegeEscalation: true`, no
   `--security-opt no-new-privileges`). A file capability is a privilege gain at exec, which
-  `no_new_privs` forbids, and the kernel then refuses to run `nmap-raw` at all. The scripts report
-  that on stderr and exit 1 without a `scan: done` record.
+  `no_new_privs` forbids: `nmap-raw` then runs without `NET_RAW` and nmap quits with
+  `dnet: Failed to open device`. The scripts report that on stderr and exit 1 without a
+  `scan: done` record.
 
 `/bin/nmap` itself has no file capability. Because its capability bit is "effective", the kernel
-would refuse to run it in any pod without `NET_RAW`, which would break the default and unprivileged
-modes.
+refuses to run such a binary in a container without `NET_RAW` in its bounding set, which would
+break the default and unprivileged modes.
 
 ## Results
 
 Each script logs one record per port nmap reports (`nmap_port`, `nmap_httpd` or `nmap_tls`), then
 `scanner_stop` and `scan: done`. A host that is down, or up with no open ports, gives no findings
-and exits 0. If nmap leaves no readable report (it could not start, or was killed) the script
-exits 1 without `scan: done`.
+and exits 0. If nmap leaves no readable report (it could not start, was killed, or quit with an
+error) the script prints why on stderr and exits 1 without `scan: done`.
 
 The image creates `samma` with uid and gid 1000, the `runAsUser` the operator sets, and removes the
 stock `ubuntu` user that recent Ubuntu base images ship at that id. Without that, `samma` would get

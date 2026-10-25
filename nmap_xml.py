@@ -14,7 +14,7 @@ the result, and the tests can use it without xmltodict.
 
 import sys
 
-from nmap_args import RESULT_FILE
+from nmap_args import RESULT_FILE, is_raw_sockets
 
 
 def as_list(value):
@@ -66,13 +66,30 @@ def runstats(doc):
     return None
 
 
-def read_report(parse, path=RESULT_FILE):
+def error(doc):
+    """nmap's own error message when it quit early, else None.
+
+    nmap still writes a well-formed report when it hits a fatal error, with
+    <finished exit="error" errormsg="...">. Without this check such a run
+    looks like a clean scan of a down host.
+    """
+    stats = runstats(doc)
+    if not isinstance(stats, dict):
+        return None
+    finished = stats.get("finished")
+    if isinstance(finished, dict) and finished.get("@exit") == "error":
+        return finished.get("@errormsg") or "nmap exited with an error"
+    return None
+
+
+def read_report(parse, path=RESULT_FILE, environ=None):
     """Parse the report with parse (xmltodict.parse) and return the document.
 
     Returns None, with a message on stderr, when nmap left no readable
     report: it failed to start, could not resolve the target, or was
     killed. That is a failed scan, unlike a down host, which nmap reports
-    normally with no <host> element.
+    normally with no <host> element. A report in which nmap records a fatal
+    error counts as no report.
     """
     try:
         with open(path, "r") as handle:
@@ -81,7 +98,22 @@ def read_report(parse, path=RESULT_FILE):
         print("nmap wrote no report ({0}): {1}".format(path, exc), file=sys.stderr)
         return None
     try:
-        return parse(text)
+        doc = parse(text)
     except Exception as exc:  # xmltodict raises expat errors on a cut-off file
         print("nmap report {0} is not valid XML: {1}".format(path, exc), file=sys.stderr)
         return None
+    message = error(doc)
+    if message is not None:
+        print("nmap failed: {0}".format(message), file=sys.stderr)
+        if is_raw_sockets(environ):
+            # Seen as "dnet: Failed to open device eth0" when nmap-raw runs
+            # without its capability, e.g. under no_new_privs.
+            print(
+                "NMAP_PRIVILEGED=1 needs the NET_RAW capability and privilege "
+                "escalation allowed (allowPrivilegeEscalation: true, no "
+                "no-new-privileges): the file capability on nmap-raw is not "
+                "granted otherwise",
+                file=sys.stderr,
+            )
+        return None
+    return doc

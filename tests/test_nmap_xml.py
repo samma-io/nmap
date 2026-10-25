@@ -8,6 +8,7 @@ The reports below are trimmed nmap -oX output. The parsing tests need
 xmltodict (the image has it, and CI installs it) and are skipped without it.
 """
 
+import io
 import os
 import sys
 import tempfile
@@ -64,6 +65,8 @@ DOWN_LISTED = report('<host><status state="down" reason="no-response"/>'
 UP_NO_PORTS = report('<host><status state="up" reason="syn-ack"/>'
                      '<address addr="10.0.0.5" addrtype="ipv4"/>'
                      '<ports><extraports state="closed" count="1000"/></ports></host>')
+FATAL = (HEAD + '<scaninfo type="syn" protocol="tcp"/><runstats><finished time="1" exit="error" '
+         'errormsg="dnet: Failed to open device eth0"/><hosts up="0" down="0" total="0"/></runstats>' + TAIL)
 TWO_HOSTS = report(_host([_port(22)]), _host([_port(80), _port(443)]), up=2)
 
 
@@ -72,6 +75,14 @@ class AsListTests(unittest.TestCase):
         self.assertEqual(nmap_xml.as_list(None), [])
         self.assertEqual(nmap_xml.as_list({"a": 1}), [{"a": 1}])
         self.assertEqual(nmap_xml.as_list([1, 2]), [1, 2])
+
+    def test_error_needs_exit_error(self):
+        self.assertIsNone(nmap_xml.error(None))
+        self.assertIsNone(nmap_xml.error({"nmaprun": {"runstats": {"finished": {"@exit": "success"}}}}))
+        self.assertEqual(
+            nmap_xml.error({"nmaprun": {"runstats": {"finished": {"@exit": "error", "@errormsg": "boom"}}}}),
+            "boom",
+        )
 
     def test_garbage_documents(self):
         for doc in (None, {}, {"nmaprun": None}, {"nmaprun": "x"}, "text"):
@@ -109,6 +120,31 @@ class ReadReportTests(unittest.TestCase):
     def test_missing_file(self):
         with mock.patch("sys.stderr"):
             self.assertIsNone(nmap_xml.read_report(xmltodict.parse, "/nonexistent/result.xml"))
+
+    def read(self, xml, environ=None):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "result.xml")
+            with open(path, "w") as handle:
+                handle.write(xml)
+            with mock.patch("sys.stderr", new_callable=io.StringIO) as err:
+                doc = nmap_xml.read_report(xmltodict.parse, path, environ or {})
+        return doc, err.getvalue()
+
+    def test_fatal_error_is_no_report(self):
+        doc, err = self.read(FATAL)
+        self.assertIsNone(doc)
+        self.assertIn("dnet: Failed to open device eth0", err)
+        self.assertNotIn("allowPrivilegeEscalation", err)
+
+    def test_fatal_error_in_raw_sockets_mode_names_the_cause(self):
+        doc, err = self.read(FATAL, {"NMAP_PRIVILEGED": "1"})
+        self.assertIsNone(doc)
+        self.assertIn("allowPrivilegeEscalation", err)
+
+    def test_down_host_is_a_report(self):
+        doc, err = self.read(DOWN_NOT_LISTED)
+        self.assertIsNotNone(doc)
+        self.assertEqual(err, "")
 
     def test_truncated_file(self):
         with tempfile.TemporaryDirectory() as tmp:

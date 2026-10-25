@@ -19,7 +19,10 @@ place:
   refuses to run a binary whose effective file capabilities it cannot grant,
   so a capability on /bin/nmap would break the unprivileged mode below.
   File capabilities are only granted when privilege escalation is allowed
-  (no_new_privs off, allowPrivilegeEscalation: true in Kubernetes).
+  (no_new_privs off, allowPrivilegeEscalation: true in Kubernetes). Under
+  no_new_privs nmap-raw still runs, without the capability, and nmap quits
+  with "dnet: Failed to open device"; nmap_xml reports that as a failed
+  scan.
 
 * NMAP_UNPRIVILEGED=1 (or true): nmap runs as the current user, without sudo,
   and the SYN scan becomes a connect scan (-sT), which needs ordinary sockets
@@ -104,20 +107,18 @@ def build_command(args, environ=None):
 def run(argv):
     """Run nmap with its stdout discarded. False when it could not start.
 
-    A raw-sockets pod that forbids privilege escalation gets EPERM here: the
-    kernel will not grant nmap-raw its file capability, and refuses to run
-    it rather than run it without.
+    The scripts judge the scan by the report nmap writes (nmap_xml), not by
+    this result: an nmap that could not start writes none. A report left
+    by an earlier run is removed first so it cannot stand in for this one.
     """
+    try:
+        os.remove(RESULT_FILE)
+    except OSError:
+        pass
     try:
         subprocess.run(argv, stdout=subprocess.DEVNULL, check=False)
     except OSError as exc:
         print("could not run {0}: {1}".format(argv[0], exc), file=sys.stderr)
-        if argv[0] == NMAP_RAW:
-            print(
-                "{0}=1 needs the NET_RAW capability and privilege escalation "
-                "allowed (allowPrivilegeEscalation: true, no no-new-privileges)".format(PRIVILEGED_ENV_VAR),
-                file=sys.stderr,
-            )
         return False
     return True
 

@@ -11,8 +11,9 @@ RUN pip3 install xmltodict nats-py --break-system-packages
 # NET_RAW added): a copy of nmap that gets CAP_NET_RAW from a file capability,
 # so it runs as samma without sudo. Only nmap_args.py calls it, and only in
 # that mode. /bin/nmap stays without a capability: the kernel refuses to exec
-# a binary whose effective file capabilities it cannot grant, which would
-# break the default and unprivileged modes in a pod without NET_RAW.
+# a binary whose effective file capabilities are outside the bounding set,
+# which would break the default and unprivileged modes in a pod without
+# NET_RAW. The capability is only granted with privilege escalation allowed.
 RUN install -D -o root -g root -m 0755 /usr/bin/nmap /usr/local/lib/samma/nmap-raw \
  && setcap cap_net_raw+eip /usr/local/lib/samma/nmap-raw \
  && getcap /usr/local/lib/samma/nmap-raw | grep -q cap_net_raw \

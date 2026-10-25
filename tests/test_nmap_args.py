@@ -169,7 +169,7 @@ class RawSocketsModeTests(unittest.TestCase):
 
 class RunTests(unittest.TestCase):
     def test_exec_failure_returns_false(self):
-        with mock.patch("subprocess.run", side_effect=PermissionError(1, "Operation not permitted")):
+        with mock.patch("subprocess.run", side_effect=FileNotFoundError(2, "No such file or directory")):
             with mock.patch("sys.stderr"):
                 self.assertFalse(nmap_args.run([RAW_NMAP, "-sS", TARGET]))
 
