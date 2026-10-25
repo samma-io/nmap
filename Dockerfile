@@ -4,8 +4,20 @@ FROM ubuntu:24.04@sha256:68ee22004a9109b44973313b02ff7b1de250f1de0f5ecb628d73f57
 
 
 #Install nmap
-RUN apt-get update && apt-get install sudo nmap python3-pip -y
+RUN apt-get update && apt-get install sudo nmap libcap2-bin python3-pip -y
 RUN pip3 install xmltodict nats-py --break-system-packages
+
+# Raw-sockets mode (NMAP_PRIVILEGED=1, a pod with every capability dropped but
+# NET_RAW added): a copy of nmap that gets CAP_NET_RAW from a file capability,
+# so it runs as samma without sudo. Only nmap_args.py calls it, and only in
+# that mode. /bin/nmap stays without a capability: the kernel refuses to exec
+# a binary whose effective file capabilities are outside the bounding set,
+# which would break the default and unprivileged modes in a pod without
+# NET_RAW. The capability is only granted with privilege escalation allowed.
+RUN install -D -o root -g root -m 0755 /usr/bin/nmap /usr/local/lib/samma/nmap-raw \
+ && setcap cap_net_raw+eip /usr/local/lib/samma/nmap-raw \
+ && getcap /usr/local/lib/samma/nmap-raw | grep -q cap_net_raw \
+ && test -z "$(getcap /usr/bin/nmap)"
 
 
 COPY  . /code

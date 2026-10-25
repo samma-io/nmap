@@ -1,6 +1,7 @@
 """Tests for nmap_args.py: the argv of the three scanner scripts in the
-default mode (sudo, SYN scan) and in unprivileged mode (no sudo, connect
-scan).
+default mode (sudo, SYN scan), in unprivileged mode (no sudo, connect scan)
+and in raw-sockets mode (no sudo, SYN scan from the nmap copy that has a
+file capability).
 
 Run from the repository root:
 
@@ -35,6 +36,8 @@ import nmap_tlscipher  # noqa: E402
 TARGET = "scanme.nmap.org"
 PRIVILEGED = {}
 UNPRIVILEGED = {"NMAP_UNPRIVILEGED": "1"}
+RAW = {"NMAP_PRIVILEGED": "1"}
+RAW_NMAP = "/usr/local/lib/samma/nmap-raw"
 
 PORT_DEFAULT = ["sudo", "/bin/nmap", "-sS", "-oX", "/out/result.xml", TARGET]
 PORT_UNPRIVILEGED = ["/bin/nmap", "-sT", "-oX", "/out/result.xml", TARGET]
@@ -126,6 +129,58 @@ class HelperCommandTests(unittest.TestCase):
                     nmap_args.build_command([option, TARGET], UNPRIVILEGED)
 
 
+class RawSocketsModeTests(unittest.TestCase):
+    def test_flag_values(self):
+        for value in ("1", "true", "yes", "on", " TRUE "):
+            with self.subTest(value=value):
+                self.assertTrue(nmap_args.is_raw_sockets({"NMAP_PRIVILEGED": value}))
+        for value in ("", "0", "false", "no"):
+            with self.subTest(value=value):
+                self.assertFalse(nmap_args.is_raw_sockets({"NMAP_PRIVILEGED": value}))
+        self.assertFalse(nmap_args.is_raw_sockets({}))
+
+    def test_default_flags_from_the_capability_copy_without_sudo(self):
+        for build, default, _ in BUILDERS:
+            with self.subTest(build=build.__name__):
+                argv = build(TARGET, RAW)
+                self.assertEqual(argv, [RAW_NMAP] + default[2:])
+                self.assertNotIn("sudo", argv)
+
+    def test_port_scan_stays_a_syn_scan(self):
+        self.assertIn("-sS", nmap_args.port_scan_command(TARGET, RAW))
+
+    def test_raw_socket_options_allowed(self):
+        self.assertEqual(nmap_args.build_command(["-O", TARGET], RAW), [RAW_NMAP, "-O", TARGET])
+
+    def test_unprivileged_wins_over_privileged(self):
+        both = {"NMAP_PRIVILEGED": "1", "NMAP_UNPRIVILEGED": "1"}
+        self.assertFalse(nmap_args.is_raw_sockets(both))
+        self.assertEqual(nmap_args.port_scan_command(TARGET, both), PORT_UNPRIVILEGED)
+
+    def test_other_modes_never_use_the_capability_copy(self):
+        for environ in (PRIVILEGED, UNPRIVILEGED):
+            for build, _, _ in BUILDERS:
+                with self.subTest(environ=environ, build=build.__name__):
+                    self.assertNotIn(RAW_NMAP, build(TARGET, environ))
+
+    def test_target_stays_one_argument(self):
+        self.assertIn("example.com; id", nmap_args.port_scan_command("example.com; id", RAW))
+
+
+class RunTests(unittest.TestCase):
+    def test_exec_failure_returns_false(self):
+        with mock.patch("subprocess.run", side_effect=FileNotFoundError(2, "No such file or directory")):
+            with mock.patch("sys.stderr"):
+                self.assertFalse(nmap_args.run([RAW_NMAP, "-sS", TARGET]))
+
+    def test_success_returns_true_and_uses_no_shell(self):
+        with mock.patch("subprocess.run") as run:
+            self.assertTrue(nmap_args.run(["/bin/nmap", TARGET]))
+        args, kwargs = run.call_args
+        self.assertEqual(args[0], ["/bin/nmap", TARGET])
+        self.assertFalse(kwargs.get("shell", False))
+
+
 class ScriptCommandTests(unittest.TestCase):
     """The three scripts build their argv through nmap_args from os.environ."""
 
@@ -133,12 +188,19 @@ class ScriptCommandTests(unittest.TestCase):
         for script, default, _ in SCRIPTS:
             with self.subTest(script=script.__name__), mock.patch.dict(os.environ):
                 os.environ.pop("NMAP_UNPRIVILEGED", None)
+                os.environ.pop("NMAP_PRIVILEGED", None)
                 self.assertEqual(script.nmap_command(TARGET), default)
 
     def test_unprivileged_mode(self):
         for script, _, unprivileged in SCRIPTS:
             with self.subTest(script=script.__name__), mock.patch.dict(os.environ, {"NMAP_UNPRIVILEGED": "1"}):
                 self.assertEqual(script.nmap_command(TARGET), unprivileged)
+
+    def test_raw_sockets_mode(self):
+        for script, default, _ in SCRIPTS:
+            with self.subTest(script=script.__name__), mock.patch.dict(os.environ, {"NMAP_PRIVILEGED": "1"}):
+                os.environ.pop("NMAP_UNPRIVILEGED", None)
+                self.assertEqual(script.nmap_command(TARGET), [RAW_NMAP] + default[2:])
 
 
 if __name__ == "__main__":
