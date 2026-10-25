@@ -13,7 +13,14 @@ RUN chmod 700 /code/nmap_*
 
 RUN mkdir /out
 
-RUN useradd -ms /bin/bash samma
+# ubuntu:latest ships an "ubuntu" user at uid/gid 1000 (and in the sudo group),
+# so a plain useradd would give samma uid 1001. The samma operator runs scanner
+# containers with runAsUser 1000 and the sudoers rule below names samma, so
+# samma has to be uid/gid 1000: drop the stock user and pin the ids.
+RUN if id ubuntu >/dev/null 2>&1; then userdel -r ubuntu; fi \
+ && if getent group ubuntu >/dev/null; then groupdel ubuntu; fi \
+ && groupadd --gid 1000 samma \
+ && useradd --uid 1000 --gid 1000 -ms /bin/bash samma
 RUN chown samma:samma /out
 RUN chown samma:samma /code/*.py
 RUN chmod 664 /code/*.py

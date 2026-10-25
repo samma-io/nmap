@@ -12,7 +12,7 @@ The image has three modes. The operator runs each one as a separate scanner:
 
 | Operator scanner | Script | Nmap command | Finds | Use it for |
 |---|---|---|---|---|
-| `nmap/port` | `nmap_portscanner.py` (default) | `nmap -sS` | Open TCP ports (SYN scan) | A thorough port inventory |
+| `nmap/port` | `nmap_portscanner.py` (default) | `nmap -sS`, or `nmap -sT` in [unprivileged mode](#unprivileged-mode) | Open TCP ports | A thorough port inventory |
 | `nmap/http` | `nmap_httprecon.py` | `nmap -sV --script http-enum` | Web server fingerprint, common paths and applications | Knowing what software you expose |
 | `nmap/tls` | `nmap_tlscipher.py` | `nmap -sV --script ssl-enum-ciphers` | Every TLS cipher and protocol accepted, with a grade | Weak cipher and protocol findings |
 
@@ -52,6 +52,35 @@ All settings are environment variables:
 | `NATS_ENABLED` | `False` | `true` publishes every finding to NATS |
 | `NATS_URL` | `nats://localhost:4222` | NATS server |
 | `NATS_SUBJECT` | `scans` | NATS subject (the operator uses `samma-io.scan`) |
+| `NMAP_UNPRIVILEGED` | unset | `1` runs nmap without `sudo` and with a connect scan, see [Unprivileged mode](#unprivileged-mode) |
+
+## Unprivileged mode
+
+By default the image runs nmap through `sudo`, because a SYN scan (`-sS`) needs raw sockets. That
+works with `docker run`, but not in a hardened Kubernetes pod: a pod that drops every capability
+has no raw sockets to give, with or without `sudo`, and a pod that forbids privilege escalation
+cannot run `sudo` at all. The port scan fails either way.
+
+Set `NMAP_UNPRIVILEGED=1` and the scripts run `/bin/nmap` directly as the `samma` user, with the
+SYN scan replaced by a connect scan (`-sT`). A connect scan uses ordinary sockets and finds the same
+open TCP ports; it is a little slower and completes the handshake, so the target logs it. The http
+and tls scanners only drop `sudo`: version detection and NSE scripts already work over ordinary
+sockets. nmap reads `NMAP_UNPRIVILEGED` itself as well, so host discovery uses `connect()` to ports
+80 and 443 instead of ICMP, and nothing needs `-Pn`.
+
+```sh
+docker run --rm -e TARGET=scanme.nmap.org -e NMAP_UNPRIVILEGED=1 samma-nmap
+```
+
+Leave the variable unset to keep the SYN scan through `sudo`. The
+[Samma operator](https://github.com/samma-io/operator) sets it on every nmap container unless its
+`scanners.nmapRawSockets` value is `true`, in which case the pod gets the `NET_RAW` capability and
+the SYN scan instead.
+
+The image creates `samma` with uid and gid 1000, the `runAsUser` the operator sets, and removes the
+stock `ubuntu` user that recent Ubuntu base images ship at that id. Without that, `samma` would get
+uid 1001 and a pod running as 1000 would be the `ubuntu` user, which the sudoers rule does not
+cover.
 
 ## In Kubernetes
 
