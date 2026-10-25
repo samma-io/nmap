@@ -9,16 +9,23 @@ import subprocess
 import os
 import xmltodict, json
 from sammaParser import logger, endThis
+from target_check import require_valid_target
 
 
+def nmap_command(target):
+	'''
+	Build the nmap argv list. The target is one argument of its own, so
+	nothing in it is interpreted by a shell. sudo stays because the image
+	runs as the samma user with a sudoers rule for /bin/nmap.
+	'''
+	return ['sudo', '/bin/nmap', '-sV', '--script', 'ssl-enum-ciphers', target, '-oX', '/out/result.xml']
 
 
-def start_scan():
+def start_scan(target):
 	'''
 	Start the nmap scan of the target
 	'''
-	process = subprocess.Popen('sudo /bin/nmap -sV --script ssl-enum-ciphers  {0} -oX /out/result.xml '.format(os.environ['TARGET']) , shell=True, stdout=subprocess.PIPE)
-	process.wait()
+	subprocess.run(nmap_command(target), stdout=subprocess.DEVNULL, check=False)
 
 
 
@@ -26,18 +33,18 @@ def convert_output():
     '''
     Converts the output to json
     '''
-    f = open("/out/result.xml","r") 
+    f = open("/out/result.xml","r")
     text = f.read()
     o = xmltodict.parse(text)
     json_data = json.dumps(o)
     #print(o)
 
-    
+
     for host in o['nmaprun']['host']['ports']['port']:
         try:
                 out_json ={}
                 out_json['type'] ="nmap"
-                out_json['scanner'] ="nmap_tls" 
+                out_json['scanner'] ="nmap_tls"
                 out_json['target']="{0}".format(os.environ['TARGET'])
                 out_json['service'] = host['service']
                 #out_json['version'] = port['service']['@version']
@@ -47,10 +54,14 @@ def convert_output():
 
         except KeyError:
                 out_json ={}
-                out_json["type"] ="NmapScanTLS" 
+                out_json["type"] ="NmapScanTLS"
                 out_json['target']="{0}".format(os.environ['TARGET'])
                 logger(out_json)
 
-start_scan()
-convert_output()
-endThis()
+
+if __name__ == '__main__':
+    #Refuse a bad target before anything runs, then scan and get the output
+    target = require_valid_target()
+    start_scan(target)
+    convert_output()
+    endThis()
